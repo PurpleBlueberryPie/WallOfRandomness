@@ -1,136 +1,217 @@
-// Constants and initial data
-const categories = ['Branding', 'Packaging', 'Poster', 'Data', 'Social Media', 'Tees'];
-const initialUrlArrays = {
-  Branding: [
-    'https://pbs.twimg.com/media/Example1.jpg',
-    'https://images.unsplash.com/photo-Example2',
-    'https://www.behance.net/gallery/Example3/image',
-  ],
-  Packaging: [
-    'https://i.pinimg.com/originals/Example4.jpg',
-    'https://assets.pinterest.com/Example5.jpg',
-  ],
-  Poster: [], Data: [], 'Social Media': [], Tees: [],
-};
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wall of Randomness</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        #gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        #categories {
+            display: flex;
+            justify-content: center;
+            overflow-x: auto;
+            margin-bottom: 2rem;
+        }
+        .category-btn {
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .category-btn:hover {
+            background-color: #0056b3;
+        }
+        #imageGrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        .image-container {
+            width: 100%;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .image-container img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+        #loader {
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #addButton {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #addButton:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div id="gallery-container">
+        <h1>Wall of Randomness</h1>
+        <div id="categories"></div>
+        <div id="imageGrid"></div>
+        <div id="loader"></div>
+        <button id="addButton">Add Image URL</button>
+    </div>
 
-// Utility functions
-const getImageUrl = (url) => {
-  if (url.includes('twimg.com')) return url;
-  if (url.includes('unsplash.com')) return `${url}&w=800&q=80`;
-  if (url.includes('behance.net')) return url.replace('/image', '/project_modules/max_1200/');
-  return url;
-};
+    <script>
+        // Constants and initial data
+        const categories = ['Branding', 'Packaging', 'Poster', 'Data', 'Social Media', 'Tees'];
+        const initialUrlArrays = {
+            Branding: [
+                'https://pbs.twimg.com/media/Example1.jpg',
+                'https://images.unsplash.com/photo-Example2',
+                'https://www.behance.net/gallery/Example3/image',
+            ],
+            Packaging: [
+                'https://i.pinimg.com/originals/Example4.jpg',
+                'https://assets.pinterest.com/Example5.jpg',
+            ],
+            Poster: [],
+            Data: [],
+            'Social Media': [],
+            Tees: [],
+        };
 
-class EndlessScrollGallery {
-  constructor(containerId) {
-    this.container = document.getElementById(containerId);
-    this.selectedCategory = categories[0];
-    this.images = [];
-    this.loading = false;
-    this.urlArrays = { ...initialUrlArrays };
-    this.observer = null;
-    this.init();
-  }
+        // Utility functions
+        const getImageUrl = (url) => {
+            if (url.includes('twimg.com')) return url;
+            if (url.includes('unsplash.com')) return `${url}&w=800&q=80`;
+            if (url.includes('behance.net')) return url.replace('/image', '/project_modules/max_1200/');
+            return url;
+        };
 
-  init() {
-    this.renderStructure();
-    this.loadMoreImages();
-    this.setupInfiniteScroll();
-  }
+        class EndlessScrollGallery {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.selectedCategory = categories[0];
+                this.images = [];
+                this.loading = false;
+                this.urlArrays = { ...initialUrlArrays };
+                this.observer = null;
+                this.init();
+            }
 
-  renderStructure() {
-    this.container.innerHTML = `
-      <h1 style="font-size: 2.5rem; font-weight: bold; text-align: center; margin: 2rem 0;">Wall of Randomness</h1>
-      <div id="categories" style="display: flex; justify-content: center; overflow-x: auto; margin-bottom: 2rem;"></div>
-      <div id="imageGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;"></div>
-      <div id="loader" style="height: 2.5rem; display: flex; align-items: center; justify-content: center;"></div>
-      <button id="addButton" style="position: fixed; bottom: 2rem; right: 2rem; background-color: #3B82F6; color: white; padding: 0.75rem; border-radius: 9999px; border: none; cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">+</button>
-    `;
-    this.renderCategories();
-    this.setupEventListeners();
-  }
+            init() {
+                this.renderCategories();
+                this.setupEventListeners();
+                this.loadMoreImages();
+                this.setupInfiniteScroll();
+            }
 
-  renderCategories() {
-    const categoriesContainer = document.getElementById('categories');
-    categoriesContainer.innerHTML = categories.map(category => `
-      <button
-        class="category-btn"
-        style="padding: 0.5rem 1rem; border-radius: 9999px; margin-right: 1rem; background-color: ${this.selectedCategory === category ? '#3B82F6' : '#E5E7EB'}; color: ${this.selectedCategory === category ? 'white' : '#374151'}; border: none; cursor: pointer;"
-        data-category="${category}"
-      >${category}</button>
-    `).join('');
-  }
+            renderCategories() {
+                const categoriesContainer = document.getElementById('categories');
+                categoriesContainer.innerHTML = categories.map(category =>
+                    `<button class="category-btn" data-category="${category}">${category}</button>`
+                ).join('');
+            }
 
-  setupEventListeners() {
-    document.getElementById('categories').addEventListener('click', (e) => {
-      if (e.target.classList.contains('category-btn')) {
-        this.selectCategory(e.target.dataset.category);
-      }
-    });
-    document.getElementById('addButton').addEventListener('click', () => this.addImageUrl());
-  }
+            setupEventListeners() {
+                document.getElementById('categories').addEventListener('click', (e) => {
+                    if (e.target.classList.contains('category-btn')) {
+                        this.selectCategory(e.target.dataset.category);
+                    }
+                });
+                document.getElementById('addButton').addEventListener('click', () => this.addImageUrl());
+            }
 
-  selectCategory(category) {
-    this.selectedCategory = category;
-    this.renderCategories();
-    this.images = [];
-    this.loadMoreImages();
-  }
+            selectCategory(category) {
+                this.selectedCategory = category;
+                document.querySelectorAll('.category-btn').forEach(btn => {
+                    btn.style.backgroundColor = btn.dataset.category === category ? '#0056b3' : '#007bff';
+                });
+                this.images = [];
+                this.loadMoreImages();
+            }
 
-  loadMoreImages() {
-    if (this.loading) return;
-    this.loading = true;
-    document.getElementById('loader').textContent = 'Loading...';
-    const categoryUrls = this.urlArrays[this.selectedCategory];
-    if (categoryUrls.length === 0) {
-      this.loading = false;
-      document.getElementById('loader').textContent = '';
-      return;
-    }
-    const newImages = Array(10).fill().map(() => {
-      const randomIndex = Math.floor(Math.random() * categoryUrls.length);
-      return categoryUrls[randomIndex];
-    });
-    this.images = [...this.images, ...newImages];
-    this.renderImages();
-    this.loading = false;
-    document.getElementById('loader').textContent = '';
-  }
+            loadMoreImages() {
+                if (this.loading) return;
+                this.loading = true;
+                document.getElementById('loader').textContent = 'Loading...';
+                const categoryUrls = this.urlArrays[this.selectedCategory];
+                if (categoryUrls.length === 0) {
+                    this.loading = false;
+                    document.getElementById('loader').textContent = '';
+                    return;
+                }
+                const newImages = Array(10).fill().map(() => {
+                    const randomIndex = Math.floor(Math.random() * categoryUrls.length);
+                    return categoryUrls[randomIndex];
+                });
+                this.images = [...this.images, ...newImages];
+                this.renderImages();
+                this.loading = false;
+                document.getElementById('loader').textContent = '';
+            }
 
-  renderImages() {
-    const imageGrid = document.getElementById('imageGrid');
-    imageGrid.innerHTML = this.images.map(src => `
-      <div style="width: 100%; margin-bottom: 1rem; overflow: hidden; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
-        <img src="${getImageUrl(src)}" alt="Gallery item" style="width: 100%; height: auto; object-fit: cover;">
-      </div>
-    `).join('');
-  }
+            renderImages() {
+                const imageGrid = document.getElementById('imageGrid');
+                imageGrid.innerHTML = this.images.map(src => `
+                    <div class="image-container">
+                        <img src="${getImageUrl(src)}" alt="Gallery item">
+                    </div>
+                `).join('');
+            }
 
-  setupInfiniteScroll() {
-    const options = {
-      root: null,
-      rootMargin: '20px',
-      threshold: 1.0
-    };
-    this.observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && !this.loading) {
-        this.loadMoreImages();
-      }
-    }, options);
-    this.observer.observe(document.getElementById('loader'));
-  }
+            setupInfiniteScroll() {
+                const options = { root: null, rootMargin: '20px', threshold: 1.0 };
+                this.observer = new IntersectionObserver((entries) => {
+                    if (entries[0].isIntersecting && !this.loading) {
+                        this.loadMoreImages();
+                    }
+                }, options);
+                this.observer.observe(document.getElementById('loader'));
+            }
 
-  addImageUrl() {
-    const newUrl = prompt('Enter the URL of the image to add:');
-    if (newUrl) {
-      this.urlArrays[this.selectedCategory].push(newUrl);
-      this.images.push(newUrl);
-      this.renderImages();
-    }
-  }
-}
+            addImageUrl() {
+                const newUrl = prompt('Enter the URL of the image to add:');
+                if (newUrl) {
+                    this.urlArrays[this.selectedCategory].push(newUrl);
+                    this.images.push(newUrl);
+                    this.renderImages();
+                }
+            }
+        }
 
-// Usage
-document.addEventListener('DOMContentLoaded', () => {
-  new EndlessScrollGallery('gallery-container');
-});
+        // Usage
+        document.addEventListener('DOMContentLoaded', () => {
+            new EndlessScrollGallery('gallery-container');
+        });
+    </script>
+</body>
+</html>
