@@ -65,15 +65,22 @@
             justify-content: center;
         }
         #addButton {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
             background-color: #28a745;
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 50%;
+            font-size: 24px;
             cursor: pointer;
             transition: background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         #addButton:hover {
             background-color: #218838;
@@ -86,21 +93,20 @@
         <div id="categories"></div>
         <div id="imageGrid"></div>
         <div id="loader"></div>
-        <button id="addButton">Add Image URL</button>
     </div>
+    <button id="addButton">+</button>
 
     <script>
         // Constants and initial data
         const categories = ['Branding', 'Packaging', 'Poster', 'Data', 'Social Media', 'Tees'];
         const initialUrlArrays = {
             Branding: [
-                'https://pbs.twimg.com/media/Example1.jpg',
-                'https://images.unsplash.com/photo-Example2',
-                'https://www.behance.net/gallery/Example3/image',
+                'https://i.pinimg.com/enabled_hi/564x/68/2e/16/682e160216581624d534e8b08ed94014.jpg',
+                'https://pbs.twimg.com/media/GZX6xNLWQAABCfC?format=jpg&name=small',
             ],
             Packaging: [
-                'https://i.pinimg.com/originals/Example4.jpg',
-                'https://assets.pinterest.com/Example5.jpg',
+                'https://i.pinimg.com/enabled_hi/564x/68/2e/16/682e160216581624d534e8b08ed94014.jpg',
+                'https://pbs.twimg.com/media/GZX6xNLWQAABCfC?format=jpg&name=small',
             ],
             Poster: [],
             Data: [],
@@ -181,7 +187,7 @@
 
             renderImages() {
                 const imageGrid = document.getElementById('imageGrid');
-                imageGrid.innerHTML = this.images.map(src => `
+                imageGrid.innerHTML += this.images.map(src => `
                     <div class="image-container">
                         <img src="${getImageUrl(src)}" alt="Gallery item">
                     </div>
