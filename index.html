@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-
+// Constants and initial data
 const categories = ['Branding', 'Packaging', 'Poster', 'Data', 'Social Media', 'Tees'];
-
 const initialUrlArrays = {
   Branding: [
     'https://pbs.twimg.com/media/Example1.jpg',
@@ -12,12 +10,10 @@ const initialUrlArrays = {
     'https://i.pinimg.com/originals/Example4.jpg',
     'https://assets.pinterest.com/Example5.jpg',
   ],
-  Poster: [],
-  Data: [],
-  'Social Media': [],
-  Tees: [],
+  Poster: [], Data: [], 'Social Media': [], Tees: [],
 };
 
+// Utility functions
 const getImageUrl = (url) => {
   if (url.includes('twimg.com')) return url;
   if (url.includes('unsplash.com')) return `${url}&w=800&q=80`;
@@ -25,152 +21,116 @@ const getImageUrl = (url) => {
   return url;
 };
 
-const ImageCard = ({ src }) => (
-  <div style={{
-    width: '100%',
-    marginBottom: '1rem',
-    overflow: 'hidden',
-    borderRadius: '0.5rem',
-    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-  }}>
-    <img src={getImageUrl(src)} alt="Gallery item" style={{
-      width: '100%',
-      height: 'auto',
-      objectFit: 'cover',
-    }} />
-  </div>
-);
+class EndlessScrollGallery {
+  constructor(containerId) {
+    this.container = document.getElementById(containerId);
+    this.selectedCategory = categories[0];
+    this.images = [];
+    this.loading = false;
+    this.urlArrays = { ...initialUrlArrays };
+    this.observer = null;
+    this.init();
+  }
 
-const EndlessScrollGallery = () => {
-  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
-  const [images, setImages] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [urlArrays, setUrlArrays] = useState(initialUrlArrays);
-  const loader = useRef(null);
+  init() {
+    this.renderStructure();
+    this.loadMoreImages();
+    this.setupInfiniteScroll();
+  }
 
-  const loadMoreImages = () => {
-    setLoading(true);
-    const categoryUrls = urlArrays[selectedCategory];
+  renderStructure() {
+    this.container.innerHTML = `
+      <h1 style="font-size: 2.5rem; font-weight: bold; text-align: center; margin: 2rem 0;">Wall of Randomness</h1>
+      <div id="categories" style="display: flex; justify-content: center; overflow-x: auto; margin-bottom: 2rem;"></div>
+      <div id="imageGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;"></div>
+      <div id="loader" style="height: 2.5rem; display: flex; align-items: center; justify-content: center;"></div>
+      <button id="addButton" style="position: fixed; bottom: 2rem; right: 2rem; background-color: #3B82F6; color: white; padding: 0.75rem; border-radius: 9999px; border: none; cursor: pointer; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">+</button>
+    `;
+    this.renderCategories();
+    this.setupEventListeners();
+  }
+
+  renderCategories() {
+    const categoriesContainer = document.getElementById('categories');
+    categoriesContainer.innerHTML = categories.map(category => `
+      <button
+        class="category-btn"
+        style="padding: 0.5rem 1rem; border-radius: 9999px; margin-right: 1rem; background-color: ${this.selectedCategory === category ? '#3B82F6' : '#E5E7EB'}; color: ${this.selectedCategory === category ? 'white' : '#374151'}; border: none; cursor: pointer;"
+        data-category="${category}"
+      >${category}</button>
+    `).join('');
+  }
+
+  setupEventListeners() {
+    document.getElementById('categories').addEventListener('click', (e) => {
+      if (e.target.classList.contains('category-btn')) {
+        this.selectCategory(e.target.dataset.category);
+      }
+    });
+    document.getElementById('addButton').addEventListener('click', () => this.addImageUrl());
+  }
+
+  selectCategory(category) {
+    this.selectedCategory = category;
+    this.renderCategories();
+    this.images = [];
+    this.loadMoreImages();
+  }
+
+  loadMoreImages() {
+    if (this.loading) return;
+    this.loading = true;
+    document.getElementById('loader').textContent = 'Loading...';
+    const categoryUrls = this.urlArrays[this.selectedCategory];
     if (categoryUrls.length === 0) {
-      setLoading(false);
+      this.loading = false;
+      document.getElementById('loader').textContent = '';
       return;
     }
-    const newImages = [...Array(10)].map(() => {
+    const newImages = Array(10).fill().map(() => {
       const randomIndex = Math.floor(Math.random() * categoryUrls.length);
       return categoryUrls[randomIndex];
     });
-    setImages((prevImages) => [...prevImages, ...newImages]);
-    setLoading(false);
-  };
+    this.images = [...this.images, ...newImages];
+    this.renderImages();
+    this.loading = false;
+    document.getElementById('loader').textContent = '';
+  }
 
-  useEffect(() => {
-    setImages([]);
-    loadMoreImages();
-  }, [selectedCategory]);
+  renderImages() {
+    const imageGrid = document.getElementById('imageGrid');
+    imageGrid.innerHTML = this.images.map(src => `
+      <div style="width: 100%; margin-bottom: 1rem; overflow: hidden; border-radius: 0.5rem; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <img src="${getImageUrl(src)}" alt="Gallery item" style="width: 100%; height: auto; object-fit: cover;">
+      </div>
+    `).join('');
+  }
 
-  useEffect(() => {
+  setupInfiniteScroll() {
     const options = {
       root: null,
       rootMargin: '20px',
       threshold: 1.0
     };
-
-    const observer = new IntersectionObserver((entities) => {
-      const target = entities[0];
-      if (target.isIntersecting && !loading) {
-        loadMoreImages();
+    this.observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !this.loading) {
+        this.loadMoreImages();
       }
     }, options);
+    this.observer.observe(document.getElementById('loader'));
+  }
 
-    if (loader.current) {
-      observer.observe(loader.current);
-    }
-
-    return () => {
-      if (loader.current) {
-        observer.unobserve(loader.current);
-      }
-    };
-  }, [loading, selectedCategory]);
-
-  const addImageUrl = () => {
+  addImageUrl() {
     const newUrl = prompt('Enter the URL of the image to add:');
     if (newUrl) {
-      setUrlArrays((prevArrays) => ({
-        ...prevArrays,
-        [selectedCategory]: [...prevArrays[selectedCategory], newUrl]
-      }));
-      setImages((prevImages) => [...prevImages, newUrl]);
+      this.urlArrays[this.selectedCategory].push(newUrl);
+      this.images.push(newUrl);
+      this.renderImages();
     }
-  };
+  }
+}
 
-  return (
-    <div style={{
-      maxWidth: '64rem',
-      margin: '0 auto',
-      padding: '0 1rem',
-    }}>
-      <h1 style={{
-        fontSize: '2.5rem',
-        fontWeight: 'bold',
-        textAlign: 'center',
-        margin: '2rem 0',
-      }}>Wall of Randomness</h1>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        overflowX: 'auto',
-        marginBottom: '2rem',
-      }}>
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setSelectedCategory(category)}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: '9999px',
-              marginRight: '1rem',
-              backgroundColor: selectedCategory === category ? '#3B82F6' : '#E5E7EB',
-              color: selectedCategory === category ? 'white' : '#374151',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-        gap: '1rem',
-      }}>
-        {images.map((src, index) => (
-          <ImageCard key={`${src}-${index}`} src={src} />
-        ))}
-      </div>
-      <div ref={loader} style={{ height: '2.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {loading && <p>Loading...</p>}
-      </div>
-      <button
-        onClick={addImageUrl}
-        style={{
-          position: 'fixed',
-          bottom: '2rem',
-          right: '2rem',
-          backgroundColor: '#3B82F6',
-          color: 'white',
-          padding: '0.75rem',
-          borderRadius: '9999px',
-          border: 'none',
-          cursor: 'pointer',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        }}
-      >
-        +
-      </button>
-    </div>
-  );
-};
-
-export default EndlessScrollGallery;
+// Usage
+document.addEventListener('DOMContentLoaded', () => {
+  new EndlessScrollGallery('gallery-container');
+});
