@@ -1,0 +1,140 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { PlusCircle } from 'lucide-react';
+
+const categories = ['Branding', 'Packaging', 'Poster', 'Data', 'Social Media', 'Tees'];
+
+const initialUrlArrays = {
+  Branding: [
+    'https://pbs.twimg.com/media/Example1.jpg',
+    'https://images.unsplash.com/photo-Example2',
+    'https://www.behance.net/gallery/Example3/image',
+  ],
+  Packaging: [
+    'https://i.pinimg.com/originals/Example4.jpg',
+    'https://assets.pinterest.com/Example5.jpg',
+  ],
+  Poster: [],
+  Data: [],
+  'Social Media': [],
+  Tees: [],
+};
+
+const getImageUrl = (url) => {
+  // Add logic to parse different types of URLs (Twitter, Instagram, etc.)
+  // This is a simplified example
+  if (url.includes('twimg.com')) {
+    return url;
+  } else if (url.includes('unsplash.com')) {
+    return `${url}&w=800&q=80`;
+  } else if (url.includes('behance.net')) {
+    return url.replace('/image', '/project_modules/max_1200/');
+  }
+  return url;
+};
+
+const ImageCard = ({ src }) => (
+  <div className="w-full mb-4 overflow-hidden rounded-lg shadow-lg">
+    <img src={getImageUrl(src)} alt="Gallery item" className="w-full h-auto object-cover" />
+  </div>
+);
+
+const EndlessScrollGallery = () => {
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [urlArrays, setUrlArrays] = useState(initialUrlArrays);
+  const loader = useRef(null);
+
+  const loadMoreImages = () => {
+    setLoading(true);
+    const categoryUrls = urlArrays[selectedCategory];
+    if (categoryUrls.length === 0) {
+      setLoading(false);
+      return;
+    }
+    const newImages = [...Array(10)].map(() => {
+      const randomIndex = Math.floor(Math.random() * categoryUrls.length);
+      return categoryUrls[randomIndex];
+    });
+    setImages((prevImages) => [...prevImages, ...newImages]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    setImages([]);
+    loadMoreImages();
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    const options = {
+      root: null,
+      rootMargin: '20px',
+      threshold: 1.0
+    };
+
+    const observer = new IntersectionObserver((entities) => {
+      const target = entities[0];
+      if (target.isIntersecting && !loading) {
+        loadMoreImages();
+      }
+    }, options);
+
+    if (loader.current) {
+      observer.observe(loader.current);
+    }
+
+    return () => {
+      if (loader.current) {
+        observer.unobserve(loader.current);
+      }
+    };
+  }, [loading, selectedCategory]);
+
+  const addImageUrl = () => {
+    const newUrl = prompt('Enter the URL of the image to add:');
+    if (newUrl) {
+      setUrlArrays((prevArrays) => ({
+        ...prevArrays,
+        [selectedCategory]: [...prevArrays[selectedCategory], newUrl]
+      }));
+      setImages((prevImages) => [...prevImages, newUrl]);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto px-4">
+      <h1 className="text-4xl font-bold text-center my-8">Wall of Randomness</h1>
+      <div className="flex justify-center space-x-4 mb-8 overflow-x-auto">
+        {categories.map((category) => (
+          <button
+            key={category}
+            onClick={() => setSelectedCategory(category)}
+            className={`px-4 py-2 rounded-full ${
+              selectedCategory === category
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 text-gray-700'
+            }`}
+          >
+            {category}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {images.map((src, index) => (
+          <ImageCard key={`${src}-${index}`} src={src} />
+        ))}
+      </div>
+      <div ref={loader} className="h-10 flex items-center justify-center">
+        {loading && <p>Loading...</p>}
+      </div>
+      <button
+        onClick={addImageUrl}
+        className="fixed bottom-8 right-8 bg-blue-500 text-white p-3 rounded-full shadow-lg"
+      >
+        <PlusCircle size={24} />
+      </button>
+    </div>
+  );
+};
+
+export default EndlessScrollGallery;
